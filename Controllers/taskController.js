@@ -104,19 +104,28 @@ const deleteTask = async (req, res) => {
 
 // Assign Task (Admin only)
 const assignTask = async (req, res) => {
-  const taskId = new mongoose.Types.ObjectId(req.params.taskId);
-  
   try {
+    const taskId = req.params.taskId; // No need to convert it to ObjectId
+    const assignedTo = Number(req.body.assignedTo); // Ensure it's a number
+
+    if (isNaN(assignedTo)) {
+      return res.status(400).json({ message: "Invalid assignedTo user ID" });
+    }
+
     const task = await Task.findByIdAndUpdate(
       taskId,
-      { assignedTo: req.body.assignedTo },
+      { assignedTo }, // Ensure it's stored as a number
       { new: true }
     );
-    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
 
     res.json(task);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error assigning task:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 

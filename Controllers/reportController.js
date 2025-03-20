@@ -32,7 +32,7 @@ const getTopUsers = async (req, res) => {
       topUsers.map(async (user) => {
         try {
           // Ensure _id is converted to a string
-          const userId = user._id.toString(); 
+          const userId = user?._id?.toString(); 
 
           const userInfo = await prisma.user.findUnique({ 
             where: { id: parseInt(userId) } // Ensure ID matches MySQL format

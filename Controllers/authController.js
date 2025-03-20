@@ -42,6 +42,7 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
+ 
   const { email, password } = req.body;
 
   try {
@@ -54,7 +55,7 @@ const login = async (req, res) => {
     if (isMatch) {
 			generateTokenAndSetCookie(user.id, res);
 
-			res.status(201).json({
+			res.status(200).json({
 				
         id:user.id,
 				name: user.name,
@@ -69,5 +70,36 @@ const login = async (req, res) => {
   }
 };
 
+// Get User Profile
+const getUserProfile = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, name: true, email: true, role: true }, // Exclude password
+    });
 
-module.exports = { register,login }
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Get Profile Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+//Logout
+const logout = (req, res) => {
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  res.json({ message: "Logged out successfully" });
+};
+
+
+module.exports = { register,login,getUserProfile,logout }

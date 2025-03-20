@@ -1,17 +1,42 @@
 const Task = require("../Models/Task")
+const mongoose = require("mongoose");
+const { PrismaClient } = require("@prisma/client");
+
+const prisma = new PrismaClient();
+
+// Get All Users (Admin only)
+const getAllUsers = async (req, res) => {
+ 
+
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: { not: "admin" } }, // Exclude admins
+      select: { id: true, name: true, email: true },
+    });
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+
+
 
 // Create Task (User only)
 const createTask = async (req, res) => {
 
-  const { title,description,assignedTo,status } = req.body;
+console.log("req =",req.user)
+  const { title,description,assignedTo } = req.body;
+ 
   try {
-    const task = await new Task({ title,description,status, assignedTo: req.user.id });
+    const task = await new Task({ title,description, assignedTo: req.user.id });
     
     await task.save();
     
     res.status(201).json(task);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message:error.message });
   }
 };
 
@@ -56,14 +81,21 @@ const updateTask = async (req, res) => {
 
 // Delete Task (Only Task Creator)
 const deleteTask = async (req, res) => {
+
+ const taskId = req.params.taskId;
+
+    // Validate taskId before querying
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
   try {
-    const task = await Task.findOneAndDelete({ _id: req.params.taskId, assignedTo: req.user.id });
-    
+    const task = await Task.findOneAndDelete({ _id: taskId, assignedTo: req.user.id });
+   
     if (!task) return res.status(403).json({ message: "Not authorized to delete this task" });
 
-    res.json({ message: "Task deleted successfully" });
+    res.json({ message: "Task deleted successfully",task });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -72,13 +104,11 @@ const deleteTask = async (req, res) => {
 
 // Assign Task (Admin only)
 const assignTask = async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Admin access required" });
-  }
-
+  const taskId = new mongoose.Types.ObjectId(req.params.taskId);
+  
   try {
     const task = await Task.findByIdAndUpdate(
-      req.params.taskId,
+      taskId,
       { assignedTo: req.body.assignedTo },
       { new: true }
     );
@@ -110,5 +140,23 @@ const getAllTasks = async (req, res) => {
 };
 
 
+//ordering when draging
+const reOrderItems = async (req, res) => {
+  const { reorderedTasks } = req.body; // Expecting an array of tasks in new order
 
-module.exports = { createTask,getUserTasks,updateTask,deleteTask,assignTask,getAllTasks }
+  try {
+    for (let i = 0; i < reorderedTasks.length; i++) {
+      await Task.findByIdAndUpdate(reorderedTasks[i]._id, { position: i });
+    }
+
+    res.json({ message: "Task order updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating task order", error });
+  }
+}
+
+
+
+
+
+module.exports = { createTask,getUserTasks,updateTask,deleteTask,assignTask,getAllTasks,getAllUsers,reOrderItems }

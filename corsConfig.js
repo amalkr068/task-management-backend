@@ -1,7 +1,7 @@
 const cors = require("cors");
 
 const corsOptions = {
-  origin: "http://localhost:5173", // Vite frontend
+  origin: "melodic-fenglisu-8043ef.netlify.app", // Vite frontend
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
